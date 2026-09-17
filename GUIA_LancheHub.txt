@@ -1,0 +1,312 @@
+GUIA DE DESENVOLVIMENTO — LANCHEHUB
+
+1. SOBRE O SISTEMA
+
+O LancheHub é um sistema web/PWA para gerenciamento da operação de uma lanchonete/restaurante, com foco inicial no atendimento por mesas, pedidos e acompanhamento pela cozinha.
+
+A ideia principal é permitir que a lanchonete registre e acompanhe todo o ciclo de um pedido:
+
+Mesa → Pedido → Cozinha → Preparação → Entrega → Pagamento → Liberação da mesa.
+
+O sistema poderá utilizar QR Codes nas mesas. Cada mesa possui um QR Code próprio. O cliente escaneia o QR Code, acessa o cardápio vinculado àquela mesa e pode montar um pedido pelo próprio celular. O backend deve identificar a mesa pelo token do QR Code e associar o pedido à mesa, sem confiar em um ID de mesa enviado diretamente pelo cliente.
+
+O garçom também poderá acompanhar mesas e pedidos. A cozinha poderá visualizar os pedidos pendentes, iniciar a preparação e marcar pedidos como prontos.
+
+IMPORTANTE:
+O objetivo inicial é fazer a parte operacional da LANCHONETE funcionar. Não tentar desenvolver todo o ERP de uma vez.
+
+2. ESCOPO ATUAL — PRIMEIRA VERSÃO
+
+O foco atual é:
+
+- Categorias
+- Produtos
+- Mesas
+- QR Code das mesas
+- Cardápio para o cliente
+- Criação de pedidos
+- Itens do pedido
+- Acompanhamento dos pedidos pela cozinha
+- Entrega dos pedidos
+- Pagamento
+- Controle do status das mesas
+
+Fluxo principal:
+
+1. Administrador/funcionário cadastra categorias e produtos.
+2. Mesas são cadastradas.
+3. Cada mesa possui um qrToken.
+4. O sistema gera um QR Code para a mesa.
+5. Cliente escaneia o QR Code.
+6. O sistema identifica a mesa.
+7. Cliente visualiza o cardápio.
+8. Cliente monta e confirma o pedido.
+9. O backend cria o Pedido vinculado à Mesa.
+10. Cozinha recebe o pedido.
+11. Cozinha inicia a preparação.
+12. Cozinha marca o pedido como pronto.
+13. Garçom entrega o pedido.
+14. O pedido é marcado como entregue.
+15. Pagamento é registrado.
+16. Mesa volta a ficar livre.
+
+3. ENTIDADES PRINCIPAIS DA PRIMEIRA VERSÃO
+
+Categoria
+- idCategoria
+- nome
+- descricao
+
+Produto
+- idProduto
+- nome
+- descricao
+- preco
+- image
+- disponivel
+- categoria
+- ingredientes
+- lanchonete
+
+Mesa
+- idMesa
+- numero
+- statusMesa
+- qrToken
+- lanchonete
+
+Pedido
+- idPedido
+- dataHora
+- statusPedido
+- mesa
+- itens
+
+ItemPedido
+- idItemPedido
+- quantidade
+- precoUnitario
+- pedido
+- produto
+
+Pagamento
+- id
+- pedido
+- valor
+- formaPagamento
+- dataHora
+
+4. STATUS
+
+StatusMesa:
+
+LIVRE
+OCUPADA
+AGUARDANDO_PAGAMENTO
+INATIVA
+
+StatusPedido:
+
+PENDENTE
+EM_PREPARACAO
+PRONTO
+ENTREGUE
+CANCELADO
+
+Fluxo esperado:
+
+Mesa:
+LIVRE → OCUPADA → AGUARDANDO_PAGAMENTO → LIVRE
+
+Pedido:
+PENDENTE → EM_PREPARACAO → PRONTO → ENTREGUE
+
+5. QR CODE
+
+O QR Code NÃO precisa ser uma entidade própria.
+
+Cada Mesa possui um qrToken.
+
+Exemplo conceitual:
+
+Mesa 5
+qrToken = "token-unico"
+
+O QR Code aponta para uma URL que contém esse token.
+
+Ao acessar:
+URL → backend → procura Mesa pelo qrToken → identifica a mesa → mostra o cardápio.
+
+O backend deve ser responsável por determinar a mesa. Não confiar em um mesaId enviado pelo cliente.
+
+Para a primeira versão, não é obrigatório criar SessaoMesa. A estrutura atual de Mesa + qrToken + Pedido já pode ser usada para implementar o fluxo inicial. Sessão de mesa pode ser adicionada futuramente se houver necessidade de controlar grupos de clientes, sessões distintas ou divisão de conta.
+
+6. CÁLCULOS
+
+Os valores monetários devem usar BigDecimal.
+
+Para cada ItemPedido:
+
+subtotal = quantidade × precoUnitario
+
+Para o Pedido:
+
+totalPedido = soma dos subtotais de todos os itens.
+
+Exemplo:
+
+2 × R$ 20,00 = R$ 40,00
+1 × R$ 10,00 = R$ 10,00
+2 × R$ 6,00 = R$ 12,00
+
+Total = R$ 62,00
+
+O backend deve recalcular o total usando os preços cadastrados dos produtos. Não confiar no total enviado pelo frontend.
+
+Estoque terá cálculos posteriormente.
+
+7. ORDEM DE DESENVOLVIMENTO
+
+Seguir esta ordem:
+
+FASE 1 — Backend básico
+- Configurar banco
+- Repositories
+- Services
+- Controllers
+- Testar APIs
+
+FASE 2 — Categorias
+- CRUD de Categoria
+
+FASE 3 — Produtos
+- CRUD de Produto
+- Relacionamento com Categoria
+- Disponibilidade
+- Preço
+
+FASE 4 — Mesas
+- CRUD de Mesa
+- Status da mesa
+- Geração do qrToken
+
+FASE 5 — QR Code
+- Gerar QR Code a partir da URL/token
+- Página pública da mesa
+- Identificação da mesa
+
+FASE 6 — Pedidos
+- Criar Pedido
+- Criar ItemPedido
+- Calcular totais
+- Vincular Pedido à Mesa
+- Alterar status
+
+FASE 7 — Cozinha
+- Listar pedidos PENDENTES
+- Iniciar preparação
+- Marcar como PRONTO
+
+FASE 8 — Atendimento
+- Visualizar mesas
+- Visualizar pedidos
+- Confirmar entrega
+
+FASE 9 — Pagamento
+- Registrar pagamento
+- Calcular/validar valor
+- Alterar mesa para LIVRE após finalização
+
+FASE 10 — Estoque
+- Ingredientes
+- Estoque
+- Movimentações
+- Saídas causadas por vendas
+- Alertas de estoque mínimo
+
+FASE 11 — Usuários e permissões
+- Administrador
+- Garçom
+- Cozinheiro
+- Permissões
+
+FASE 12 — Melhorias
+- Dashboard
+- Relatórios
+- Histórico
+- Melhorias de UX
+- Atualizações em tempo real
+
+8. CLASSES JÁ EXISTENTES RELACIONADAS AO ERP
+
+Existem classes que NÃO devem ser o foco da primeira versão operacional da lanchonete.
+
+Lanchonete
+Ingrediente
+Estoque
+MovimentacaoEstoque
+TipoMovimentacao
+UnidadeMedida
+
+Essas classes fazem parte de uma visão maior do projeto e devem ser aproveitadas posteriormente para construir um ERP/gestão mais completo da lanchonete.
+
+A classe Lanchonete representa a própria empresa/unidade e poderá ser importante para uma arquitetura multiempresa no futuro.
+
+Ingrediente, Estoque e MovimentacaoEstoque fazem parte principalmente do módulo de estoque/ERP, que será desenvolvido DEPOIS que o fluxo de atendimento e pedidos estiver funcionando.
+
+Não deixar essas classes impedirem o desenvolvimento do MVP.
+
+9. ERP FUTURO
+
+O LancheHub poderá evoluir para um ERP completo para lanchonetes/restaurantes.
+
+Possíveis módulos futuros:
+
+- Estoque
+- Compras
+- Fornecedores
+- Controle de ingredientes
+- Ficha técnica dos produtos
+- Custo dos produtos
+- Controle financeiro
+- Contas a pagar
+- Contas a receber
+- Relatórios
+- Dashboard
+- Funcionários
+- Permissões
+- Múltiplas lanchonetes/unidades
+- Histórico de vendas
+
+Esses módulos NÃO são prioridade agora.
+
+A prioridade é:
+
+PEDIDO FUNCIONANDO DE PONTA A PONTA.
+
+10. PRINCÍPIO PARA CONTINUAR O DESENVOLVIMENTO
+
+Sempre que este guia for enviado novamente, considerar que:
+
+- O projeto é o LancheHub.
+- O objetivo imediato é a operação de uma lanchonete.
+- O ERP é uma expansão futura.
+- Não começar pelo estoque/ERP.
+- Primeiro fazer o fluxo Mesa → Pedido → Cozinha → Entrega → Pagamento funcionar.
+- QR Code identifica a mesa.
+- O backend deve validar a mesa e calcular os valores.
+- Usar BigDecimal para dinheiro.
+- Evitar criar entidades desnecessárias antes de existir uma necessidade real.
+- Desenvolver em etapas pequenas e testáveis.
+
+PRÓXIMO PASSO ATUAL
+
+Começar pelo backend de Categoria:
+
+CategoriaRepository
+→ CategoriaService
+→ CategoriaController
+→ CRUD de Categoria
+
+Depois:
+Produto → Mesa → QR Code → Pedido → Cozinha → Pagamento.
