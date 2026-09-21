@@ -98,7 +98,9 @@ public class ProdutoService {
         produtoExistente.setCategoria(categoria);
 
         if (dto.ingredientesIds() != null && !dto.ingredientesIds().isEmpty()) {
-            produtoExistente.setIngredientes(ingredienteRepository.findAllById(dto.ingredientesIds()));
+            produtoExistente.setIngredientes(
+                    ingredienteRepository.findAllById(dto.ingredientesIds())
+            );
         } else {
             produtoExistente.getIngredientes().clear(); // Limpa se vier vazio/nulo, dependendo da sua regra
         }
@@ -110,6 +112,18 @@ public class ProdutoService {
     public void deletar(Long id){
         Produto produto = pegarId(id);
         repository.delete(produto);
+    }
+
+    public ProdutoResponseDTO ativar(Long id) {
+        Produto produto = pegarId(id);
+        produto.setDisponivel(true);
+        return toResponse(repository.save(produto));
+    }
+
+    public ProdutoResponseDTO desativar(Long id) {
+        Produto produto = pegarId(id);
+        produto.setDisponivel(false);
+        return toResponse(repository.save(produto));
     }
 
 }

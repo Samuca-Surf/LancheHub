@@ -25,6 +25,9 @@ public class Pedido {
     @JoinColumn(name = "mesa_id")
     private Mesa mesa;
 
+    @Enumerated(EnumType.STRING)
+    private StatusPagamento statusPagamento;
+
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL)
     private List<ItemPedido> itens;
     //colocar valor total do itemPedido

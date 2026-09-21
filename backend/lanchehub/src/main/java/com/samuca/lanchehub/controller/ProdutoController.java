@@ -37,4 +37,12 @@ public class ProdutoController {
     public void deletar(@Valid @PathVariable Long id){
         service.deletar(id);
     }
+    @PatchMapping("/{id}/ativar")
+    public ProdutoResponseDTO ativar(@PathVariable Long id) {
+        return service.ativar(id);
+    }
+    @PatchMapping("/{id}/desativar")
+    public ProdutoResponseDTO desativar(@PathVariable Long id) {
+        return service.desativar(id);
+    }
 }
