@@ -36,7 +36,7 @@ public class MesaController {
         return service.criar(dto);
     }
     @PutMapping("/{id}")
-    public MesaResponseDTO criar(@Valid @PathVariable Long id, @Valid @RequestBody MesaRequestDTO dto){
+    public MesaResponseDTO atualizar(@Valid @PathVariable Long id, @Valid @RequestBody MesaRequestDTO dto){
         return service.atualizar(id, dto);
     }
     @DeleteMapping("/{id}")

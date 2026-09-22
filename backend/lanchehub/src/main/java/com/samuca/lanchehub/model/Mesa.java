@@ -17,6 +17,7 @@ public class Mesa {
     @Enumerated(EnumType.STRING)
     private StatusMesa statusMesa;
 
+    @Column(unique = true, nullable = false)
     private String qrToken;
 
     @ManyToOne
