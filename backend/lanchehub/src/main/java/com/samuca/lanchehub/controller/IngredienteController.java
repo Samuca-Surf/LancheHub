@@ -3,6 +3,7 @@ package com.samuca.lanchehub.controller;
 import com.samuca.lanchehub.dto.IngredienteRequestDTO;
 import com.samuca.lanchehub.dto.IngredienteResponseDTO;
 import com.samuca.lanchehub.service.IngredienteService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,6 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/ingredientes")
+@Tag(name = "Ingrediente", description = "Rotas para CRUD de ingredientes")
 public class IngredienteController {
     private final IngredienteService service;
     public IngredienteController(IngredienteService service) {

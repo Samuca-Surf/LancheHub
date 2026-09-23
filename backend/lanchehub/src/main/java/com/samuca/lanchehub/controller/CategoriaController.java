@@ -3,6 +3,8 @@ package com.samuca.lanchehub.controller;
 import com.samuca.lanchehub.dto.CategoriaRequestDTO;
 import com.samuca.lanchehub.dto.CategoriaResponseDTO;
 import com.samuca.lanchehub.service.CategoriaService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/categorias")
+@Tag(name = "Categoria", description = "Rotas para gerenciamento de categoria")
 public class CategoriaController {
     private final CategoriaService service;
 
@@ -17,16 +20,19 @@ public class CategoriaController {
         this.service = service;
     }
 
+    @Operation(summary= "listar todos as categorias")
     @GetMapping
     public List<CategoriaResponseDTO> listar(){
         return service.listar();
     }
 
+    @Operation(summary = "buscar categoria por id")
     @GetMapping("/{id}")
     public CategoriaResponseDTO buscarPorId(@Valid @PathVariable Long id){
         return service.buscarPorId(id);
     }
 
+    @Operation(summary = "cadastrar categria")
     @PostMapping
     public CategoriaResponseDTO cadastrar(@Valid @RequestBody CategoriaRequestDTO dto){
         return service.criar(dto);
