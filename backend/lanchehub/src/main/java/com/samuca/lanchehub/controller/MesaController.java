@@ -19,14 +19,6 @@ public class MesaController {
         this.service = service;
     }
 
-    @Operation(summary = "Acessar mesa pelo qrToken")
-    @GetMapping("/mesa/{qrToken}")
-    public MesaResponseDTO acessarMesa(
-            @PathVariable String qrToken
-    ) {
-        return service.acessarPorQrToken(qrToken);
-    }
-
     @Operation(summary = "Alterar status da mesa")
     @PatchMapping("/{id}/status")
     public MesaResponseDTO alterarStatus(
@@ -51,6 +43,7 @@ public class MesaController {
     public void deletar(@Valid @PathVariable Long id){
         service.deletar(id);
     }
+
 
 
 }

@@ -31,7 +31,7 @@ public class IngredienteController {
     }
     @PutMapping("/{id}")
     public IngredienteResponseDTO atualizar(@Valid @PathVariable Long id, @Valid @RequestBody IngredienteRequestDTO dto){
-        return service.criar(dto);
+        return service.atualizar(id, dto);
     }
     @DeleteMapping("/{id}")
     public void deletar(@Valid @PathVariable Long id){

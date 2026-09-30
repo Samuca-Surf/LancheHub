@@ -3,6 +3,7 @@ package com.samuca.lanchehub.service;
 import com.samuca.lanchehub.dto.MesaRequestDTO;
 import com.samuca.lanchehub.dto.MesaResponseDTO;
 import com.samuca.lanchehub.exception.RecursoNaoEncontrado;
+import com.samuca.lanchehub.exception.RegraNegocioException;
 import com.samuca.lanchehub.model.Mesa;
 import com.samuca.lanchehub.model.StatusMesa;
 import com.samuca.lanchehub.repository.MesaRepository;
@@ -68,11 +69,7 @@ public class MesaService {
         return toResponse(mesaAtualizaado);
     }
     public MesaResponseDTO acessarPorQrToken(String qrToken) {
-        Mesa mesa = repository.findByQrToken(qrToken).orElseThrow(() ->
-            new RecursoNaoEncontrado("Mesa não encontrada")
-        );
-        ocuparMesa(mesa);
-        return toResponse(mesa);
+        return toResponse(buscarMesaPorToken(qrToken));
     }
     public void ocuparMesa(Mesa mesa) {
         if (mesa.getStatusMesa() == StatusMesa.OCUPADA) {
@@ -84,5 +81,13 @@ public class MesaService {
     public void liberarMesa(Mesa mesa) {
         mesa.setStatusMesa(StatusMesa.LIVRE);
         repository.save(mesa);
+    }
+    public Mesa buscarMesaPorToken(String token) {
+        Mesa mesa = repository.findByQrToken(token)
+                .orElseThrow(() -> new RecursoNaoEncontrado("Mesa não encontrada"));
+        if (mesa.getStatusMesa() == StatusMesa.INATIVA) {
+            throw new RegraNegocioException("Mesa indisponível");
+        }
+        return mesa;
     }
 }

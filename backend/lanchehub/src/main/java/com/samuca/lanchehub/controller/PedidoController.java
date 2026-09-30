@@ -24,8 +24,8 @@ public class PedidoController {
         return service.listar();
     }
     @GetMapping("/{id}")
-    public List<PedidoResponseDTO> buscarPorId(@Valid @PathVariable Long id){
-        return service.listar();
+    public PedidoResponseDTO buscarPorId(@Valid @PathVariable Long id){
+        return service.buscarPorId(id);
     }
     @PostMapping
     public PedidoResponseDTO criar(@Valid @RequestBody PedidoRequestDTO dto){

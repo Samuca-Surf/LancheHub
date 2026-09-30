@@ -10,26 +10,26 @@ O **LancheHub** ainda está em fase inicial de desenvolvimento. Neste momento, a
 
 Até o momento, foram implementados apenas os **Repositories** das entidades do sistema.
 
-* [x] Estrutura inicial do projeto
-* [x] Repositories
-* [ ] Services
-* [ ] DTOs
-* [ ] Controllers / Endpoints
-* [ ] Front-end
-* [ ] Autenticação e autorização
-* [ ] Integração entre Front-end e Back-end
-* [ ] Testes
-* [ ] Funcionalidades adicionais
+- [x] Estrutura inicial do projeto
+- [x] Repositories
+- [x] Services
+- [x] DTOs
+- [x] Controllers / Endpoints
+- [ ] Front-end
+- [ ] Autenticação e autorização
+- [ ] Integração entre Front-end e Back-end
+- [ ] Testes
+- [ ] Funcionalidades adicionais
 
 ## 🛠️ Tecnologias
 
 As tecnologias utilizadas no projeto incluem:
 
-* **Java**
-* **Spring Boot**
-* **Spring Data JPA**
-* **PostgreSQL**
-* **Vue.js** *(front-end)*
+- **Java**
+- **Spring Boot**
+- **Spring Data JPA**
+- **PostgreSQL**
+- **Vue.js** _(front-end)_
 
 ## 🚧 Desenvolvimento
 

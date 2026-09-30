@@ -1,0 +1,11 @@
+Duas coisas para não esquecer
+
+O entregar exige status PRONTO, mas ainda não existe rota que coloque o pedido em EM_PREPARACAO/PRONTO. Até a Fase 7 (Cozinha), ele sempre vai dar erro. Isso é esperado.
+
+O cliente precisa ver o cardápio, mas GET /api/produtos vai ficar restrito quando o Security entrar. Crie uma rota pública, como GET /api/publico/cardapio, retornando só produtos disponivel = true.
+
+O que falta é o Security. Hoje POST /api/pedidos está aberta para qualquer pessoa, inclusive o cliente. Ele pode chamar essa rota direto e mandar o mesaId de outra mesa. A regra "cliente só na própria mesa" só passa a valer de verdade quando:
+
+/api/publico/** for a única área aberta (permitAll).
+/api/pedidos/** (ou /api/atendente/**) exigir login com papel GARCOM ou GERENTE.
+O anyRequest() ficar como authenticated(), para qualquer rota esquecida ser bloqueada por padrão.

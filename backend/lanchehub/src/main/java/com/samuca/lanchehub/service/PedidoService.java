@@ -1,15 +1,14 @@
 package com.samuca.lanchehub.service;
 
-import com.samuca.lanchehub.dto.ItemPedidoRequestDTO;
-import com.samuca.lanchehub.dto.ItemPedidoResponseDTO;
-import com.samuca.lanchehub.dto.PedidoRequestDTO;
-import com.samuca.lanchehub.dto.PedidoResponseDTO;
+import com.samuca.lanchehub.dto.*;
 import com.samuca.lanchehub.exception.ProdutoIndisponivelException;
 import com.samuca.lanchehub.exception.RecursoNaoEncontrado;
+import com.samuca.lanchehub.exception.RegraNegocioException;
 import com.samuca.lanchehub.model.*;
 import com.samuca.lanchehub.repository.MesaRepository;
 import com.samuca.lanchehub.repository.PedidoRepository;
 import com.samuca.lanchehub.repository.ProdutoRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -56,63 +55,81 @@ public class PedidoService {
     // CRIAR
     // =========================
 
+    // ===== CRIAR (atendente) =====
+    @Transactional
     public PedidoResponseDTO criar(PedidoRequestDTO dto) {
+        Mesa mesa = mesaRepository.findById(dto.mesaId())
+                .orElseThrow(() -> new RecursoNaoEncontrado("Mesa não encontrada"));
+        return toResponse(criarPedido(mesa, dto.itens()));
+    }
 
-        var mesa = mesaRepository.findById(dto.mesaId())
-                .orElseThrow(() ->
-                        new RecursoNaoEncontrado("Mesa não encontrada")
-                );
+    // ===== CRIAR (cliente via QR) =====
+    @Transactional
+    public PedidoResponseDTO criarPorQrToken(String qrToken, PedidoQRRequestDTO dto) {
+        Mesa mesa = mesaService.buscarMesaPorToken(qrToken);
+        return toResponse(criarPedido(mesa, dto.itens()));
+    }
 
+    private Pedido criarPedido(Mesa mesa, List<ItemPedidoRequestDTO> itensDto) {
+        if (mesa.getStatusMesa() == StatusMesa.INATIVA){
+            throw new RegraNegocioException("Mesa indisponivel");
+        }
         Pedido pedido = new Pedido();
-
         pedido.setMesa(mesa);
         pedido.setDataHora(LocalDateTime.now());
         pedido.setStatusPedido(StatusPedido.PENDENTE);
+        pedido.setStatusPagamento(StatusPagamento.PENDENTE);
         pedido.setItens(new ArrayList<>());
 
-        BigDecimal valorTotal = BigDecimal.ZERO;
+        preencherItens(pedido, itensDto);
 
-        for (ItemPedidoRequestDTO itemDTO : dto.itens()) {
+        mesaService.ocuparMesa(mesa);
+        return pedidoRepository.save(pedido);
+    }
 
+    private void preencherItens(Pedido pedido, List<ItemPedidoRequestDTO> itensDto) {
+        pedido.getItens().clear();
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (ItemPedidoRequestDTO itemDTO : itensDto) {
             if (itemDTO.quantidade() == null || itemDTO.quantidade() <= 0) {
-                throw new IllegalArgumentException(
-                        "A quantidade deve ser maior que zero"
-                );
+                throw new IllegalArgumentException("A quantidade deve ser maior que zero");
             }
 
             Produto produto = produtoRepository.findById(itemDTO.produtoId())
-                    .orElseThrow(() ->
-                            new RecursoNaoEncontrado("Produto não encontrado")
-                    );
+                    .orElseThrow(() -> new RecursoNaoEncontrado("Produto não encontrado"));
 
             if (!Boolean.TRUE.equals(produto.getDisponivel())) {
-                throw new ProdutoIndisponivelException(
-                        "Produto indisponível: " + produto.getNome()
-                );
+                throw new ProdutoIndisponivelException("Produto indisponível: " + produto.getNome());
             }
 
             ItemPedido item = new ItemPedido();
-
+            item.setPedido(pedido);
             item.setProduto(produto);
             item.setQuantidade(itemDTO.quantidade());
             item.setPrecoUnitario(produto.getPreco());
-            item.setPedido(pedido);
-
             pedido.getItens().add(item);
 
-            BigDecimal subtotal = produto.getPreco()
-                    .multiply(BigDecimal.valueOf(itemDTO.quantidade()));
+            total = total.add(produto.getPreco().multiply(BigDecimal.valueOf(itemDTO.quantidade())));
+        }
+        pedido.setValorTotal(total);
+    }
 
-            valorTotal = valorTotal.add(subtotal);
+    // ===== ATUALIZAR =====
+    @Transactional
+    public PedidoResponseDTO atualizar(Long id, PedidoRequestDTO dto) {
+        Pedido pedido = pegarId(id);
+
+        if (pedido.getStatusPedido() != StatusPedido.PENDENTE) {
+            throw new RegraNegocioException("Só é possível alterar pedidos pendentes");
         }
 
-        pedido.setValorTotal(valorTotal);
+        Mesa mesa = mesaRepository.findById(dto.mesaId())
+                .orElseThrow(() -> new RecursoNaoEncontrado("Mesa não encontrada"));
+        pedido.setMesa(mesa);
+        preencherItens(pedido, dto.itens());
 
-        mesaService.ocuparMesa(mesa);
-
-        Pedido pedidoSalvo = pedidoRepository.save(pedido);
-
-        return toResponse(pedidoSalvo);
+        return toResponse(pedidoRepository.save(pedido));
     }
 
     // =========================
@@ -208,67 +225,6 @@ public class PedidoService {
     }
 
     // =========================
-    // ATUALIZAR
-    // =========================
-
-    public PedidoResponseDTO atualizar(Long id, PedidoRequestDTO dto) {
-
-        Pedido pedido = pegarId(id);
-
-        var mesa = mesaRepository.findById(dto.mesaId())
-                .orElseThrow(() ->
-                        new RecursoNaoEncontrado("Mesa não encontrada")
-                );
-
-        pedido.setMesa(mesa);
-
-        // Remove os itens antigos
-        pedido.getItens().clear();
-
-        BigDecimal valorTotal = BigDecimal.ZERO;
-
-        for (ItemPedidoRequestDTO itemDTO : dto.itens()) {
-
-            if (itemDTO.quantidade() == null || itemDTO.quantidade() <= 0) {
-                throw new IllegalArgumentException(
-                        "A quantidade deve ser maior que zero"
-                );
-            }
-
-            Produto produto = produtoRepository.findById(itemDTO.produtoId())
-                    .orElseThrow(() ->
-                            new RecursoNaoEncontrado("Produto não encontrado")
-                    );
-
-            if (!Boolean.TRUE.equals(produto.getDisponivel())) {
-                throw new IllegalStateException(
-                        "Produto indisponível: " + produto.getNome()
-                );
-            }
-
-            ItemPedido item = new ItemPedido();
-
-            item.setPedido(pedido);
-            item.setProduto(produto);
-            item.setQuantidade(itemDTO.quantidade());
-            item.setPrecoUnitario(produto.getPreco());
-
-            pedido.getItens().add(item);
-
-            BigDecimal subtotal = produto.getPreco()
-                    .multiply(BigDecimal.valueOf(itemDTO.quantidade()));
-
-            valorTotal = valorTotal.add(subtotal);
-        }
-
-        pedido.setValorTotal(valorTotal);
-
-        Pedido pedidoAtualizado = pedidoRepository.save(pedido);
-
-        return toResponse(pedidoAtualizado);
-    }
-
-    // =========================
     // DELETAR
     // =========================
 
@@ -277,22 +233,69 @@ public class PedidoService {
         pedidoRepository.delete(pedido);
     }
 
-    public PedidoResponseDTO entregar(Long id) {
-        Pedido pedido = pegarId(id);
-        pedido.setStatusPedido(StatusPedido.ENTREGUE);
-        Pedido pedidoSalvo = pedidoRepository.save(pedido);
-        return toResponse(pedidoSalvo);
+    public List<PedidoResponseDTO> listarParaCozinha(){
+        return pedidoRepository.findByStatusPedidoInOrderByDataHoraAsc(
+                List.of(StatusPedido.PENDENTE, StatusPedido.EM_PREPARACAO)
+        ).stream().map(this::toResponse).toList();
     }
 
-    public void pagarContaMesa(Long mesaId) {
-        Mesa mesa = mesaRepository.findById(mesaId).orElseThrow(() -> new RecursoNaoEncontrado("Mesa não encontrada"));
-        List<Pedido> pedidos = pedidoRepository.findByMesa(mesa);
 
-        for (Pedido pedido : pedidos) {
-            pedido.setStatusPagamento(StatusPagamento.PAGO);
+    //@Transactional
+    public PedidoResponseDTO iniciarPreparacao(Long id){
+        return mudarStatus(
+                id,
+                StatusPedido.EM_PREPARACAO,
+                List.of(StatusPedido.PENDENTE),
+                "Só pedidos pendentes podem iniciar a preparação"
+        );
+    }
+
+    //@Transactional
+    public PedidoResponseDTO marcarComoPronto(Long id){
+        return mudarStatus(id, StatusPedido.PRONTO,
+            List.of(StatusPedido.EM_PREPARACAO), "Só pedidos EM_PREPARACAO podem ser marcados como prontos"
+        );
+    }
+
+    //@Transactional
+    public PedidoResponseDTO cancelar(Long id){
+        return mudarStatus(id, StatusPedido.CANCELADO,
+                List.of(StatusPedido.PENDENTE, StatusPedido.EM_PREPARACAO), "Só pedidos PENDENTES ou EM_PREPARACAO podem ser cancelados"
+        );
+    }
+
+    // valida a transição e salva; reaproveitado por todos os métodos acima
+    private PedidoResponseDTO mudarStatus(Long id, StatusPedido novo, List<StatusPedido> permitidos, String mensagemErro){
+        Pedido pedido = pegarId(id);
+        if (!permitidos.contains(pedido.getStatusPedido())){
+            throw new RegraNegocioException(mensagemErro);
         }
+        pedido.setStatusPedido(novo);
+        return toResponse(pedidoRepository.save(pedido));
+    }
 
-        pedidoRepository.saveAll(pedidos);
+    @Transactional
+    public PedidoResponseDTO entregar(Long id) {
+        Pedido pedido = pegarId(id);
+        if (pedido.getStatusPedido() != StatusPedido.PRONTO) {
+            throw new RegraNegocioException("Só pedidos PRONTOS podem ser entregues");
+        }
+        pedido.setStatusPedido(StatusPedido.ENTREGUE);
+        return toResponse(pedidoRepository.save(pedido));
+    }
+
+    @Transactional
+    public void pagarContaMesa(Long mesaId) {
+        Mesa mesa = mesaRepository.findById(mesaId)
+                .orElseThrow(() -> new RecursoNaoEncontrado("Mesa não encontrada"));
+
+        List<Pedido> pendentes = pedidoRepository.findByMesa(mesa).stream()
+                .filter(p -> p.getStatusPagamento() == StatusPagamento.PENDENTE)
+                .filter(p -> p.getStatusPedido() != StatusPedido.CANCELADO)
+                .toList();
+
+        pendentes.forEach(p -> p.setStatusPagamento(StatusPagamento.PAGO));
+        pedidoRepository.saveAll(pendentes);
         mesaService.liberarMesa(mesa);
     }
 }
