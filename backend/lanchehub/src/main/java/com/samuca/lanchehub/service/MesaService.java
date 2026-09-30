@@ -1,5 +1,6 @@
 package com.samuca.lanchehub.service;
 
+import com.samuca.lanchehub.dto.AtendenteMesaResponseDTO;
 import com.samuca.lanchehub.dto.MesaRequestDTO;
 import com.samuca.lanchehub.dto.MesaResponseDTO;
 import com.samuca.lanchehub.exception.RecursoNaoEncontrado;
@@ -7,8 +8,10 @@ import com.samuca.lanchehub.exception.RegraNegocioException;
 import com.samuca.lanchehub.model.Mesa;
 import com.samuca.lanchehub.model.StatusMesa;
 import com.samuca.lanchehub.repository.MesaRepository;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -89,5 +92,14 @@ public class MesaService {
             throw new RegraNegocioException("Mesa indisponível");
         }
         return mesa;
+    }
+    //Atendente Controller
+    public List<AtendenteMesaResponseDTO> listarParaAtendente(){
+        return repository.findAll(Sort.by("numero")).stream().map(m -> new AtendenteMesaResponseDTO(
+                m.getIdMesa(),
+                m.getNumero(),
+                m.getStatusMesa())
+            )
+        .toList();
     }
 }

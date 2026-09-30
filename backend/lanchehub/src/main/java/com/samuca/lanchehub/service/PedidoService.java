@@ -9,6 +9,7 @@ import com.samuca.lanchehub.repository.MesaRepository;
 import com.samuca.lanchehub.repository.PedidoRepository;
 import com.samuca.lanchehub.repository.ProdutoRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -298,4 +299,24 @@ public class PedidoService {
         pedidoRepository.saveAll(pendentes);
         mesaService.liberarMesa(mesa);
     }
+
+
+    // =========================
+    // ATENDENTE
+    // =========================
+    //@Transactional
+    public PedidoResponseDTO criarParaMesa(Long mesaId, PedidoAtendenteRequestDTO dto){
+        Mesa mesa = mesaRepository.findById(mesaId).orElseThrow(() -> new RecursoNaoEncontrado("Mesa não encontrada"));
+        return toResponse(criarPedido(mesa, dto.itens()));
+    }
+
+    public List<PedidoResponseDTO> listarParaAtendente(StatusPedido status){
+        List<Pedido> pedidos = (status != null)
+                ? pedidoRepository.findByStatusPedidoOrderByDataHoraAsc(status)
+                : pedidoRepository.findByStatusPagamentoAndStatusPedidoNotOrderByDataHoraAsc(
+                StatusPagamento.PENDENTE, StatusPedido.CANCELADO);
+
+        return pedidos.stream().map(this::toResponse).toList();
+    }
+
 }
