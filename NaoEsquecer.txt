@@ -9,3 +9,7 @@ O que falta é o Security. Hoje POST /api/pedidos está aberta para qualquer pes
 /api/publico/** for a única área aberta (permitAll).
 /api/pedidos/** (ou /api/atendente/**) exigir login com papel GARCOM ou GERENTE.
 O anyRequest() ficar como authenticated(), para qualquer rota esquecida ser bloqueada por padrão.
+
+Apague o pagamento antigo
+
+Remova pagarContaMesa do PedidoService e a rota PATCH /api/pedidos/mesa/{mesaId}/pagar do PedidoController. Se elas ficarem, dá para "pagar" sem gerar registro de Pagamento, e o dinheiro deixa de ser rastreado.
